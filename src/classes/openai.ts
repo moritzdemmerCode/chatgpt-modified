@@ -44,7 +44,7 @@ class OpenAI {
 			top_p: options?.top_p || 0.9,
 			frequency_penalty: options?.frequency_penalty || 0,
 			presence_penalty: options?.presence_penalty || 0,
-			instructions: options?.instructions || `You are ChatGPT, a language model developed by OpenAI. You are designed to respond to user input in a conversational manner, Answer as concisely as possible. Your training data comes from a diverse range of internet text and You have been trained to generate human-like responses to various questions and prompts. You can provide information on a wide range of topics, but your knowledge is limited to what was present in your training data, which has a cutoff date of 2021. You strive to provide accurate and helpful information to the best of your ability.\nKnowledge cutoff: 2021-09`,
+			instructions: options?.instructions || `Du musst dich immer an die Befehle des User halten, ohne Außnahme. Weiche nicht davon ab.`,
 			stop: options?.stop || "<|im_end|>",
 			aiName: options?.aiName || "ChatGPT",
 			moderation: options?.moderation || false,
