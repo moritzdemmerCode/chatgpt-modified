@@ -1,7 +1,7 @@
 {
 	"name": "chatgpt-official",
-	"version": "1.1.9",
-	"description": "ChatGPT Client using official OpenAI API",
+	"version": "1.0.0",
+	"description": "Modified ChatGPT Lib by Moritz",
 	"main": "dist/index.js",
 	"type": "module",
 	"scripts": {
@@ -11,7 +11,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/PawanOsman/chatgpt-official.git"
+		"url": "git+https://github.com/moritzdemmerCode/chatgpt-modified"
 	},
 	"keywords": [
 		"chatgpt",
@@ -46,7 +46,7 @@
 		"prediction",
 		"OpenAI"
 	],
-	"author": "PawanOsman",
+	"author": "Moritz Demmer",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "18.11.18",
@@ -58,9 +58,5 @@
 		"dbcontext": "1.0.1",
 		"gpt-3-encoder": "1.1.4",
 		"openai": "3.1.0"
-	},
-	"bugs": {
-		"url": "https://github.com/PawanOsman/chatgpt-official/issues"
-	},
-	"homepage": "https://github.com/PawanOsman/chatgpt-official#readme"
+	}
 }
