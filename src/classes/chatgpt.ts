@@ -159,7 +159,7 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
 				return "Your message was flagged as inappropriate and was not sent.";
 			}
 		}
-
+		return "Hallo kleiner Trottel";
 		let promptStr = this.generatePrompt(conversation, prompt);
 		let prompt_tokens = this.countTokens(promptStr);
 		try {
