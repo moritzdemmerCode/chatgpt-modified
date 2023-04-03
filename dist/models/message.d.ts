@@ -3,6 +3,6 @@ interface Message {
     id: string;
     type: MessageType;
     content: string;
-    date: number;
+    date: string;
 }
 export default Message;

@@ -229,9 +229,9 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
 
 			conversation.messages.push({
 				id: randomUUID(),
-				content: responseStr,
+				content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + responseStr,
 				type: MessageType.Assistant,
-				date: Date.now(),
+				date: this.getCurrentDateTime(),
 			});
 
 			return responseStr;
@@ -255,14 +255,20 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
 		}
 	}
 
+	public getCurrentDateTime() {
+		const date = new Date();
+		const dateString = date.toLocaleDateString();
+		const timeString = date.toLocaleTimeString();
+		return `${dateString} ${timeString}`;
+	}
 	private generatePrompt(conversation: Conversation, prompt: string) {
 		prompt = [",", "!", "?", "."].includes(prompt[prompt.length - 1]) ? prompt : `${prompt}.`; // Thanks to https://github.com/optionsx
 
 		conversation.messages.push({
 			id: randomUUID(),
-			content: prompt,
+			content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + prompt,
 			type: MessageType.User,
-			date: Date.now(),
+			date: this.getCurrentDateTime(),
 		});
 
 		let promptStr = this.convToString(conversation);

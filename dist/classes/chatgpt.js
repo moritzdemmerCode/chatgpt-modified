@@ -173,9 +173,9 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             oAIKey.queries++;
             conversation.messages.push({
                 id: randomUUID(),
-                content: responseStr,
+                content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + responseStr,
                 type: MessageType.Assistant,
-                date: Date.now(),
+                date: this.getCurrentDateTime(),
             });
             return responseStr;
         }
@@ -193,6 +193,12 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             }
         }
     }
+    getCurrentDateTime() {
+        const date = new Date();
+        const dateString = date.toLocaleDateString();
+        const timeString = date.toLocaleTimeString();
+        return `${dateString} ${timeString}`;
+    }
     async moderate(prompt, key) {
         try {
             let openAi = new OpenAIApi(new Configuration({ apiKey: key }));
@@ -208,9 +214,9 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
     generatePrompt(conversation, prompt) {
         conversation.messages.push({
             id: randomUUID(),
-            content: prompt,
+            content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + prompt,
             type: MessageType.User,
-            date: Date.now(),
+            date: this.getCurrentDateTime(),
         });
         let messages = this.generateMessages(conversation);
         let promptEncodedLength = this.countTokens(messages);

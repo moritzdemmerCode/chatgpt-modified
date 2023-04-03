@@ -191,9 +191,9 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             oAIKey.queries++;
             conversation.messages.push({
                 id: randomUUID(),
-                content: responseStr,
+                content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + responseStr,
                 type: MessageType.Assistant,
-                date: Date.now(),
+                date: this.getCurrentDateTime(),
             });
             return responseStr;
         }
@@ -216,13 +216,19 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             }
         }
     }
+    getCurrentDateTime() {
+        const date = new Date();
+        const dateString = date.toLocaleDateString();
+        const timeString = date.toLocaleTimeString();
+        return `${dateString} ${timeString}`;
+    }
     generatePrompt(conversation, prompt) {
         prompt = [",", "!", "?", "."].includes(prompt[prompt.length - 1]) ? prompt : `${prompt}.`;
         conversation.messages.push({
             id: randomUUID(),
-            content: prompt,
+            content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + prompt,
             type: MessageType.User,
-            date: Date.now(),
+            date: this.getCurrentDateTime(),
         });
         let promptStr = this.convToString(conversation);
         let promptEncodedLength = encode(promptStr).length;
