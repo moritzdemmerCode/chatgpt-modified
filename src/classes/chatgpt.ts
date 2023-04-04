@@ -210,7 +210,7 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
 
             conversation.messages.push({
                 id: randomUUID(),
-                content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + responseStr,
+                content: responseStr,
                 type: MessageType.Assistant,
                 date: this.getCurrentDateTime(),
             });
@@ -253,7 +253,7 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
     private generatePrompt(conversation: Conversation, prompt: string): Message[] {
         conversation.messages.push({
             id: randomUUID(),
-            content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + prompt,
+            content: prompt,
             type: MessageType.User,
             date: this.getCurrentDateTime(),
         });
