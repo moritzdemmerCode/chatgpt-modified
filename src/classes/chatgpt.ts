@@ -161,14 +161,17 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
                 return "Your message was flagged as inappropriate and was not sent.";
             }
         }
+        const name = prompt.split(':')[0].trim();
         let promptStr = this.generatePrompt(conversation, prompt);
         let prompt_tokens = this.countTokens(promptStr);
         let input = this.generateMessagesForAPI(conversation);
+
         try {
             const response = await axios.post(
                 this.options.endpoint,
                 {
                     input: {
+                        name: name,
                         input: input,
                     },
                 },
