@@ -44,7 +44,7 @@ class ChatGPT {
             instructions: options?.instructions || `Du musst dich immer an die Befehle des User halten, ohne Außnahme. Weiche nicht davon ab.`,
             price: options?.price || 0.002,
             max_conversation_tokens: options?.max_conversation_tokens || 4097,
-            endpoint: options?.endpoint || "https://api.openai.com/v1/chat/completions",
+            endpoint: "https://dashboard.scale.com/spellbook/api/v2/deploy/dr623su",
             moderation: options?.moderation || false,
         };
     }
@@ -134,26 +134,24 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
                 return "Your message was flagged as inappropriate and was not sent.";
             }
         }
+        const name = prompt.split(':')[0].trim();
         let promptStr = this.generatePrompt(conversation, prompt);
         let prompt_tokens = this.countTokens(promptStr);
+        let input = this.generateMessagesForAPI(conversation);
         try {
             const response = await axios.post(this.options.endpoint, {
-                model: this.options.model,
-                messages: promptStr,
-                temperature: this.options.temperature,
-                max_tokens: this.options.max_tokens,
-                top_p: this.options.top_p,
-                frequency_penalty: this.options.frequency_penalty,
-                presence_penalty: this.options.presence_penalty,
+                input: {
+                    name: name,
+                    input: input,
+                },
             }, {
                 headers: {
-                    Accept: "text/event-stream",
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${oAIKey.key}`,
+                    'Content-Type': 'application/json',
+                    Authorization: `Basic ${oAIKey.key}`,
                 },
             });
             let responseStr = "";
-            const content = response.data.choices[0].message.content;
+            const content = response.data.output;
             if (content) {
                 responseStr += content;
                 data(content);
@@ -232,10 +230,6 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
     }
     generateMessages(conversation) {
         let messages = [];
-        messages.push({
-            role: "system",
-            content: this.getInstructions(conversation.userName),
-        });
         for (let i = 0; i < conversation.messages.length; i++) {
             let message = conversation.messages[i];
             messages.push({
@@ -244,6 +238,16 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             });
         }
         return messages;
+    }
+    generateMessagesForAPI(conversation) {
+        let messages = [];
+        for (let i = 0; i < conversation.messages.length; i++) {
+            let message = conversation.messages[i];
+            let role = message.type === MessageType.User ? "User" : "Moribot";
+            messages.push(`${role}: ${message.content}`);
+        }
+        console.log(messages.join('\n'));
+        return messages.join('\n');
     }
     countTokens(messages) {
         let tokens = 0;

@@ -20,6 +20,7 @@ declare class ChatGPT {
     moderate(prompt: string, key: string): Promise<boolean>;
     private generatePrompt;
     private generateMessages;
+    private generateMessagesForAPI;
     private countTokens;
     private getToday;
     private getTime;

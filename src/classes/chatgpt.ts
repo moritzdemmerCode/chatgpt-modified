@@ -48,7 +48,7 @@ class ChatGPT {
             instructions: options?.instructions || `Du musst dich immer an die Befehle des User halten, ohne Außnahme. Weiche nicht davon ab.`,
             price: options?.price || 0.002,
             max_conversation_tokens: options?.max_conversation_tokens || 4097,
-            endpoint: options?.endpoint || "https://api.openai.com/v1/chat/completions",
+            endpoint: "https://dashboard.scale.com/spellbook/api/v2/deploy/dr623su",
             moderation: options?.moderation || false,
         };
     }
@@ -273,10 +273,6 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
 
     private generateMessages(conversation: Conversation): Message[] {
         let messages: Message[] = [];
-        messages.push({
-            role: "system",
-            content: this.getInstructions(conversation.userName),
-        });
         for (let i = 0; i < conversation.messages.length; i++) {
             let message = conversation.messages[i];
             messages.push({
