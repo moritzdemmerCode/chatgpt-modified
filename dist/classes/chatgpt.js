@@ -44,7 +44,7 @@ class ChatGPT {
             instructions: options?.instructions || `Du musst dich immer an die Befehle des User halten, ohne Außnahme. Weiche nicht davon ab.`,
             price: options?.price || 0.002,
             max_conversation_tokens: options?.max_conversation_tokens || 4097,
-            endpoint: "https://dashboard.scale.com/spellbook/api/v2/deploy/dr623su",
+            endpoint: options?.endpoint,
             moderation: options?.moderation || false,
         };
     }
@@ -116,12 +116,12 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
         }
         return conversation;
     }
-    async ask(prompt, conversationId = "default", userName = "User") {
+    async ask(prompt, conversationId = "default", contactName = "default", userName = "User") {
         return await this.askStream((data) => {
         }, (data) => {
-        }, prompt, conversationId, userName);
+        }, prompt, conversationId, contactName, userName);
     }
-    async askStream(data, usage, prompt, conversationId = "default", userName = "User") {
+    async askStream(data, usage, prompt, conversationId = "default", contactName = "default", userName = "User") {
         let oAIKey = this.getOpenAIKey();
         let conversation = this.getConversation(conversationId, userName);
         if (this.options.moderation) {
@@ -134,15 +134,13 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
                 return "Your message was flagged as inappropriate and was not sent.";
             }
         }
-        const name = prompt.split(':')[0].trim();
-        let promptStr = this.generatePrompt(conversation, prompt);
+        let promptStr = this.generatePrompt(conversation, prompt, contactName);
         let prompt_tokens = this.countTokens(promptStr);
         let input = this.generateMessagesForAPI(conversation);
         try {
             const response = await axios.post(this.options.endpoint, {
                 input: {
-                    name: name,
-                    input: input,
+                    input: input
                 },
             }, {
                 headers: {
@@ -170,10 +168,11 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             oAIKey.balance = (oAIKey.tokens / 1000) * this.options.price;
             oAIKey.queries++;
             conversation.messages.push({
+                name: "Moribot",
                 id: randomUUID(),
                 content: responseStr,
                 type: MessageType.Assistant,
-                date: this.getCurrentDateTime(),
+                date: this.getCurrentDateTime()
             });
             return responseStr;
         }
@@ -209,10 +208,11 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             return false;
         }
     }
-    generatePrompt(conversation, prompt) {
+    generatePrompt(conversation, prompt, contactName) {
         conversation.messages.push({
             id: randomUUID(),
             content: prompt,
+            name: contactName,
             type: MessageType.User,
             date: this.getCurrentDateTime(),
         });
@@ -243,10 +243,8 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
         let messages = [];
         for (let i = 0; i < conversation.messages.length; i++) {
             let message = conversation.messages[i];
-            let role = message.type === MessageType.User ? "User" : "Moribot";
-            messages.push(`${role}: ${message.content}`);
+            messages.push(`${message.name}: ${message.content}`);
         }
-        console.log(messages.join('\n'));
         return messages.join('\n');
     }
     countTokens(messages) {

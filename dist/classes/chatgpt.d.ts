@@ -14,8 +14,8 @@ declare class ChatGPT {
     addConversation(conversationId: string, userName?: string): Conversation;
     getConversation(conversationId: string, userName?: string): Conversation;
     resetConversation(conversationId: string): Conversation;
-    ask(prompt: string, conversationId?: string, userName?: string): Promise<string>;
-    askStream(data: (arg0: string) => void, usage: (usage: Usage) => void, prompt: string, conversationId?: string, userName?: string): Promise<string>;
+    ask(prompt: string, conversationId?: string, contactName?: string, userName?: string): Promise<string>;
+    askStream(data: (arg0: string) => void, usage: (usage: Usage) => void, prompt: string, conversationId?: string, contactName?: string, userName?: string): Promise<string>;
     getCurrentDateTime(): string;
     moderate(prompt: string, key: string): Promise<boolean>;
     private generatePrompt;

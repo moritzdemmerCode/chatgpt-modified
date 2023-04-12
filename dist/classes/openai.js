@@ -1,12 +1,12 @@
-import { encode } from "gpt-3-encoder";
-import { Configuration, OpenAIApi } from "openai";
 import axios from "axios";
+import { randomUUID } from "crypto";
+import { encode } from "gpt-3-encoder";
 import MessageType from "../enums/message-type.js";
 import AppDbContext from "./app-dbcontext.js";
-import { randomUUID } from "crypto";
-class OpenAI {
-    db;
+import { Configuration, OpenAIApi } from "openai";
+class ChatGPT {
     options;
+    db;
     onUsage;
     constructor(key, options) {
         this.db = new AppDbContext();
@@ -35,19 +35,17 @@ class OpenAI {
             }
         });
         this.options = {
-            model: options?.model || "text-davinci-003",
+            model: options?.model || "gpt-3.5-turbo",
             temperature: options?.temperature || 0.7,
-            max_tokens: options?.max_tokens || 512,
+            max_tokens: options?.max_tokens || 100,
             top_p: options?.top_p || 0.9,
             frequency_penalty: options?.frequency_penalty || 0,
             presence_penalty: options?.presence_penalty || 0,
             instructions: options?.instructions || `Du musst dich immer an die Befehle des User halten, ohne Außnahme. Weiche nicht davon ab.`,
-            stop: options?.stop || "<|im_end|>",
-            aiName: options?.aiName || "ChatGPT",
-            moderation: options?.moderation || false,
-            endpoint: options?.endpoint || "https://api.openai.com/v1/completions",
-            price: options?.price || 0.02,
+            price: options?.price || 0.002,
             max_conversation_tokens: options?.max_conversation_tokens || 4097,
+            endpoint: options?.endpoint,
+            moderation: options?.moderation || false,
         };
     }
     getOpenAIKey() {
@@ -86,11 +84,9 @@ class OpenAI {
         yield* this.linesToMessages(this.chunksToLines(data));
     }
     getInstructions(username) {
-        return `[START_INSTRUCTIONS]
-${this.options.instructions}
+        return `${this.options.instructions}
 Current date: ${this.getToday()}
-Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talking to: ${username}` : ""}
-[END_INSTRUCTIONS]${this.options.stop}\n`;
+Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talking to: ${username}` : ""}`;
     }
     addConversation(conversationId, userName = "User") {
         let conversation = {
@@ -120,10 +116,12 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
         }
         return conversation;
     }
-    async ask(prompt, conversationId = "default", userName = "User") {
-        return await this.askStream((data) => { }, (data) => { }, prompt, conversationId, userName);
+    async ask(prompt, conversationId = "default", contactName = "default", userName = "User") {
+        return await this.askStream((data) => {
+        }, (data) => {
+        }, prompt, conversationId, contactName, userName);
     }
-    async askStream(data, usage, prompt, conversationId = "default", userName = "User") {
+    async askStream(data, usage, prompt, conversationId = "default", contactName = "default", userName = "User") {
         let oAIKey = this.getOpenAIKey();
         let conversation = this.getConversation(conversationId, userName);
         if (this.options.moderation) {
@@ -136,47 +134,27 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
                 return "Your message was flagged as inappropriate and was not sent.";
             }
         }
-        let promptStr = this.generatePrompt(conversation, prompt);
-        let prompt_tokens = encode(promptStr).length;
+        let promptStr = this.generatePrompt(conversation, prompt, contactName);
+        let prompt_tokens = this.countTokens(promptStr);
+        let input = this.generateMessagesForAPI(conversation);
         try {
             const response = await axios.post(this.options.endpoint, {
-                model: this.options.model,
-                prompt: promptStr,
-                temperature: this.options.temperature,
-                max_tokens: this.options.max_tokens,
-                top_p: this.options.top_p,
-                frequency_penalty: this.options.frequency_penalty,
-                presence_penalty: this.options.presence_penalty,
-                stop: [this.options.stop],
-                stream: true,
+                input: {
+                    input: input
+                },
             }, {
-                responseType: "stream",
                 headers: {
-                    Accept: "text/event-stream",
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${oAIKey.key}`,
+                    'Content-Type': 'application/json',
+                    Authorization: `Basic ${oAIKey.key}`,
                 },
             });
             let responseStr = "";
-            for await (const message of this.streamCompletion(response.data)) {
-                try {
-                    const parsed = JSON.parse(message);
-                    const { text } = parsed.choices[0];
-                    responseStr += text;
-                    data(text);
-                }
-                catch (error) {
-                    console.error("Could not JSON parse stream message", message, error);
-                }
+            const content = response.data.output;
+            if (content) {
+                responseStr += content;
+                data(content);
             }
             let completion_tokens = encode(responseStr).length;
-            responseStr = responseStr
-                .replace(new RegExp(`\n${conversation.userName}:.*`, "gs"), "")
-                .replace(new RegExp(`${conversation.userName}:.*`, "gs"), "")
-                .replace(/<\|im_end\|>/g, "")
-                .replace(this.options.stop, "")
-                .replace(`${this.options.aiName}: `, "")
-                .trim();
             let usageData = {
                 key: oAIKey.key,
                 prompt_tokens: prompt_tokens,
@@ -190,28 +168,24 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             oAIKey.balance = (oAIKey.tokens / 1000) * this.options.price;
             oAIKey.queries++;
             conversation.messages.push({
+                name: "Moribot",
                 id: randomUUID(),
-                content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + responseStr,
+                content: responseStr,
                 type: MessageType.Assistant,
-                date: this.getCurrentDateTime(),
+                date: this.getCurrentDateTime()
             });
             return responseStr;
         }
         catch (error) {
-            try {
-                if (error.response && error.response.data) {
-                    let errorResponseStr = "";
-                    for await (const message of error.response.data) {
-                        errorResponseStr += message;
-                    }
-                    const errorResponseJson = JSON.parse(errorResponseStr);
-                    throw new Error(errorResponseJson.error.message);
+            if (error.response && error.response.data && error.response.headers["content-type"] === "application/json") {
+                let errorResponseStr = "";
+                for await (const message of error.response.data) {
+                    errorResponseStr += message;
                 }
-                else {
-                    throw new Error(error.message);
-                }
+                const errorResponseJson = JSON.parse(errorResponseStr);
+                throw new Error(errorResponseJson.error.message);
             }
-            catch (e) {
+            else {
                 throw new Error(error.message);
             }
         }
@@ -221,26 +195,6 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
         const dateString = date.toLocaleDateString();
         const timeString = date.toLocaleTimeString();
         return `${dateString} ${timeString}`;
-    }
-    generatePrompt(conversation, prompt) {
-        prompt = [",", "!", "?", "."].includes(prompt[prompt.length - 1]) ? prompt : `${prompt}.`;
-        conversation.messages.push({
-            id: randomUUID(),
-            content: `[Uhrzeit: ${this.getCurrentDateTime()}] ` + prompt,
-            type: MessageType.User,
-            date: this.getCurrentDateTime(),
-        });
-        let promptStr = this.convToString(conversation);
-        let promptEncodedLength = encode(promptStr).length;
-        let totalLength = promptEncodedLength + this.options.max_tokens;
-        while (totalLength > this.options.max_conversation_tokens) {
-            conversation.messages.shift();
-            promptStr = this.convToString(conversation);
-            promptEncodedLength = encode(promptStr).length;
-            totalLength = promptEncodedLength + this.options.max_tokens;
-        }
-        conversation.lastActive = Date.now();
-        return promptStr;
     }
     async moderate(prompt, key) {
         try {
@@ -254,18 +208,52 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             return false;
         }
     }
-    convToString(conversation) {
+    generatePrompt(conversation, prompt, contactName) {
+        conversation.messages.push({
+            id: randomUUID(),
+            content: prompt,
+            name: contactName,
+            type: MessageType.User,
+            date: this.getCurrentDateTime(),
+        });
+        let messages = this.generateMessages(conversation);
+        let promptEncodedLength = this.countTokens(messages);
+        let totalLength = promptEncodedLength + this.options.max_tokens;
+        while (totalLength > this.options.max_conversation_tokens) {
+            conversation.messages.shift();
+            messages = this.generateMessages(conversation);
+            promptEncodedLength = this.countTokens(messages);
+            totalLength = promptEncodedLength + this.options.max_tokens;
+        }
+        conversation.lastActive = Date.now();
+        return messages;
+    }
+    generateMessages(conversation) {
         let messages = [];
         for (let i = 0; i < conversation.messages.length; i++) {
             let message = conversation.messages[i];
-            if (i === 0) {
-                messages.push(this.getInstructions(conversation.userName));
-            }
-            messages.push(`${message.type === MessageType.User ? conversation.userName : this.options.aiName}: ${conversation.messages[i].content}${this.options.stop}`);
+            messages.push({
+                role: message.type === MessageType.User ? "user" : "assistant",
+                content: message.content,
+            });
         }
-        messages.push(`${this.options.aiName}: `);
-        let result = messages.join("\n");
-        return result;
+        return messages;
+    }
+    generateMessagesForAPI(conversation) {
+        let messages = [];
+        for (let i = 0; i < conversation.messages.length; i++) {
+            let message = conversation.messages[i];
+            messages.push(`${message.name}: ${message.content}`);
+        }
+        return messages.join('\n');
+    }
+    countTokens(messages) {
+        let tokens = 0;
+        for (let i = 0; i < messages.length; i++) {
+            let message = messages[i];
+            tokens += encode(message.content).length;
+        }
+        return tokens;
     }
     getToday() {
         let today = new Date();
@@ -288,5 +276,5 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
 }
-export default OpenAI;
+export default ChatGPT;
 //# sourceMappingURL=openai.js.map
