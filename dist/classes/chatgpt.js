@@ -136,20 +136,29 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
         }
         let promptStr = this.generatePrompt(conversation, prompt, contactName);
         let prompt_tokens = this.countTokens(promptStr);
-        let input = this.generateMessagesForAPI(conversation);
         try {
-            const response = await axios.post(this.options.endpoint, {
-                input: {
-                    input: input
+            const response = await axios.post(
+                this.options.endpoint,
+                {
+                    model: this.options.model,
+                    messages: promptStr,
+                    temperature: this.options.temperature,
+                    max_tokens: this.options.max_tokens,
+                    top_p: this.options.top_p,
+                    frequency_penalty: this.options.frequency_penalty,
+                    presence_penalty: this.options.presence_penalty,
                 },
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Basic ${oAIKey.key}`,
+                {
+                    headers: {
+                        Accept: "text/event-stream",
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${oAIKey.key}`,
+                    },
                 },
-            });
+            );
+
             let responseStr = "";
-            const content = response.data.output;
+            const content = response.data.choices[0].message.content;
             if (content) {
                 responseStr += content;
                 data(content);
@@ -234,19 +243,12 @@ Current time: ${this.getTime()}${username !== "User" ? `\nName of the user talki
             let message = conversation.messages[i];
             messages.push({
                 role: message.type === MessageType.User ? "user" : "assistant",
-                content: message.content,
+                content: message.name + ":" + message.content,
             });
         }
         return messages;
     }
-    generateMessagesForAPI(conversation) {
-        let messages = [];
-        for (let i = 0; i < conversation.messages.length; i++) {
-            let message = conversation.messages[i];
-            messages.push(`${message.name}: ${message.content}`);
-        }
-        return messages.join('\n');
-    }
+
     countTokens(messages) {
         let tokens = 0;
         for (let i = 0; i < messages.length; i++) {
