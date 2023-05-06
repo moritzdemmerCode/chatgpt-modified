@@ -1,6 +1,6 @@
 {
 	"name": "chatgpt-official",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "Modified ChatGPT Lib by Moritz",
 	"main": "dist/index.js",
 	"type": "module",
